@@ -52,8 +52,16 @@ public class CreativeSlotCrashCheck extends AbstractCheck {
                         return CheckResult.cancel("Illegal item amount in creative packet: " + item.getAmount(), 3);
                     }
 
-                    // Deep ItemMeta validation (SkullOwner, Lore, DisplayName)
                     if (item.hasItemMeta()) {
+                        String panillaThreat = com.hokokrtet.rwguard.utils.PanillaItemSafetyUtil.validateItemExploits(
+                                item,
+                                plugin.getConfigManager().getFireworkMaxPower(),
+                                plugin.getConfigManager().getFireworkMaxEffects()
+                        );
+                        if (panillaThreat != null) {
+                            return CheckResult.cancel("Exploit item in creative packet: " + panillaThreat, 5);
+                        }
+
                         ItemMeta meta = item.getItemMeta();
                         if (meta != null) {
                             if (meta.hasDisplayName() && meta.getDisplayName().length() > 128) {

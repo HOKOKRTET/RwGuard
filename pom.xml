@@ -6,7 +6,7 @@
 
     <groupId>com.hokokrtet</groupId>
     <artifactId>RwGuard</artifactId>
-    <version>2.2.1-HOTFIX</version>
+    <version>2.2.2</version>
     <packaging>jar</packaging>
 
     <name>RwGuard</name>
