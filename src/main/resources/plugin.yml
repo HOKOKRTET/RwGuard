@@ -1,0 +1,24 @@
+name: RwGuard
+version: '${project.version}'
+main: com.hokokrtet.rwguard.RwGuard
+api-version: '1.16'
+folia-supported: true
+author: HOKOKRTET
+website: dsc.gg/fpistudio
+softdepend:
+  - packetevents
+  - ProtocolLib
+  - floodgate
+commands:
+  guard:
+    description: RwGuard main anti-crash command
+    permission: rwguard.admin
+    aliases:
+      - rwguard
+permissions:
+  rwguard.admin:
+    description: Access to RwGuard commands
+    default: op
+  rwguard.alerts:
+    description: Receive RwGuard packet exploit notifications
+    default: op

@@ -1,0 +1,305 @@
+# ========================================================
+#                    RwGuard Configuration
+#       Next-Gen Enterprise Anti-Crash & Packet Limiter
+#     Compatibility: Minecraft 1.16 through 1.21.x+ & 26.x+
+# ========================================================
+
+# Packet interception engine to use.
+# Options:
+#   AUTO        - Automatically detects PacketEvents or ProtocolLib; falls back to Direct Netty
+#   NETTY       - Direct zero-lag Netty Channel Duplex Handler (standalone, no dependencies needed)
+#   PACKETEVENTS - Hooks into modern PacketEvents 2.x API
+#   PROTOCOLLIB - Hooks into ProtocolLib 5.x API
+engine: "AUTO"
+
+# Verbose pipeline and exploit debugging in console
+debug: false
+
+alerts:
+  broadcast-to-admins: true
+  permission: "rwguard.alerts"
+  play-sound: true
+
+# Discord Webhook integration for instant notifications
+discord-webhook:
+  enabled: false
+  url: ""
+
+global-ratelimit:
+  # Max incoming packets per second per player across all packet types
+  max-packets-per-second: 1200
+  # Max raw bytes per incoming packet buffer (prevent oversized memory allocations)
+  max-bytes-per-second: 262144
+
+punishments:
+  # Accumulated violation score before automatic kick
+  max-violations-before-kick: 15
+  # Command dispatched when player exceeds violation threshold or triggers critical exploit
+  kick-command: "kick %player% &c[RwGuard] Malicious packet behavior detected (%reason%)"
+
+# --------------------------------------------------------
+# Exploit Protection Modules
+# --------------------------------------------------------
+modules:
+  movement:
+    # Flying, Position, PositionLook packet flood limit
+    max-packets-per-sec: 300
+    # Maximum absolute coordinate bound before packet cancellation (prevents Infinity/NaN/Chunk crash)
+    max-coordinate: 30000000.0
+    # VehicleMove & SteerVehicle limits
+    max-vehicle-pps: 150
+
+  inventory:
+    # Window click packet limit
+    max-clicks-per-sec: 45
+    # Strict validation of creative mode slot packets (blocks NBT overflow, illegal stacks)
+    creative-validation: true
+    creative-max-stack: 64
+    creative-max-nbt-bytes: 16384
+    # Auto-recipe crafting table spam crash protection
+    auto-recipe-limiter: true
+    auto-recipe-max-pps: 15
+    # Relaxed placement thresholds for Schematica / Litematica printer mods
+    printer-mode-tolerance: true
+
+  payload:
+    # Max size in bytes for custom payload data (Book / Client brand / Mod channels)
+    max-size-bytes: 32768
+    # Max registered channels per client
+    max-registered-channels: 128
+    # Only allow whitelisted plugin channels
+    strict-channel-whitelist: false
+    whitelist:
+      - "minecraft:brand"
+      - "minecraft:register"
+      - "minecraft:unregister"
+      - "bungeecord:main"
+      - "fml:handshake"
+
+  book:
+    # Maximum permitted pages in a signed/edited book
+    max-pages: 50
+    # Maximum characters per page (blocks UTF-8 surrogate byte crash)
+    max-page-length: 512
+    # Book edit packets per second
+    max-edits-per-sec: 4
+
+  sign:
+    # Maximum character length per sign line
+    max-line-length: 384
+    # Sign update packets per second
+    max-updates-per-sec: 10
+
+  entity:
+    # UseEntity (attack/interact) packets per second
+    max-interact-per-sec: 80
+    # ArmAnimation (swing) packets per second
+    max-arm-animation-per-sec: 100
+
+  chat:
+    # Chat message packets per second
+    max-chat-per-sec: 10
+    # Command executions per second
+    max-command-per-sec: 20
+    # Tab completion suggestion packets per second
+    max-tab-complete-per-sec: 30
+    # Maximum character length of command line
+    max-command-length: 256
+    # Strip PlaceholderAPI %token% placeholders from anvil renames and chat to prevent PAPI freeze/leak exploits
+    strip-placeholders: true
+
+  redstone:
+    # Prevent redstone chunk overload / tick freeze machines
+    enabled: true
+    max-updates-per-chunk: 500
+    window-seconds: 2
+
+  bedrock:
+    # Relaxed thresholds for Geyser / Floodgate Bedrock players (touch controls / packet batching)
+    enabled: true
+    # Multiplier for PPS limits (e.g. 2.0x higher limit for mobile clients)
+    packet-multiplier: 2.0
+    # Disable strict vehicle packet cancellation on Bedrock to avoid false flags
+    relax-vehicle-checks: true
+
+  nbt-protection:
+    # Raw NBT Decompressor Bomb Protection (LPX-grade):
+    # Parses compressed NBT in ByteBuf directly before NbtIo.read
+    enabled: true
+    # Maximum decompressed byte size (512 KB)
+    max-decompressed-bytes: 524288
+    # Maximum nested compound tag depth (blocks StackOverflow recursion)
+    max-depth: 32
+
+  anarchy:
+    # Illegal Firework Crash Mitigation (AEF port)
+    # Blocks firework rockets with flight power > 3 or excessive explosion effects that freeze server/client
+    firework-limiter:
+      enabled: true
+      max-power: 3
+      max-effects: 8
+
+    # Falling Block / Anvil Limiter (AEF port)
+    # Limits maximum active falling blocks per chunk to stop sand/anvil collapse lag machines
+    falling-block-limiter:
+      enabled: true
+      max-per-chunk: 40
+
+    # Lever & Button Spam Limiter (AEF port)
+    # Prevents players from spamming redstone levers and buttons to drop server TPS
+    interact-spam-limiter:
+      enabled: true
+      max-clicks-per-sec: 8
+
+# --------------------------------------------------------
+# Granular Per-Packet Limits
+# Action: ALLOW, CANCEL, DROP, KICK, BAN
+# Category: MOVEMENT, INVENTORY, ENTITY, CHAT, BOOK, SIGN, CUSTOM_PAYLOAD, OTHER
+# --------------------------------------------------------
+packet-rules:
+  FLYING:
+    max-per-second: 250
+    window-seconds: 1
+    action: DROP
+    category: MOVEMENT
+    alert: false
+
+  POSITION:
+    max-per-second: 200
+    window-seconds: 1
+    action: DROP
+    category: MOVEMENT
+    alert: false
+
+  POSITION_LOOK:
+    max-per-second: 200
+    window-seconds: 1
+    action: DROP
+    category: MOVEMENT
+    alert: false
+
+  LOOK:
+    max-per-second: 200
+    window-seconds: 1
+    action: DROP
+    category: MOVEMENT
+    alert: false
+
+  VEHICLE_MOVE:
+    max-per-second: 150
+    window-seconds: 1
+    action: DROP
+    category: MOVEMENT
+    alert: true
+
+  WINDOW_CLICK:
+    max-per-second: 45
+    window-seconds: 1
+    action: DROP
+    category: INVENTORY
+    alert: true
+
+  SET_CREATIVE_SLOT:
+    max-per-second: 25
+    window-seconds: 1
+    action: CANCEL
+    category: INVENTORY
+    alert: true
+
+  AUTO_RECIPE:
+    max-per-second: 15
+    window-seconds: 1
+    action: DROP
+    category: INVENTORY
+    alert: true
+
+  ARM_ANIMATION:
+    max-per-second: 100
+    window-seconds: 1
+    action: DROP
+    category: ENTITY
+    alert: false
+
+  USE_ENTITY:
+    max-per-second: 80
+    window-seconds: 1
+    action: DROP
+    category: ENTITY
+    alert: true
+
+  USE_ITEM:
+    max-per-second: 60
+    window-seconds: 1
+    action: DROP
+    category: ENTITY
+    alert: false
+
+  BLOCK_PLACE:
+    max-per-second: 60
+    window-seconds: 1
+    action: DROP
+    category: ENTITY
+    alert: false
+
+  BLOCK_DIG:
+    max-per-second: 80
+    window-seconds: 1
+    action: DROP
+    category: ENTITY
+    alert: false
+
+  CUSTOM_PAYLOAD:
+    max-per-second: 50
+    window-seconds: 1
+    action: DROP
+    category: CUSTOM_PAYLOAD
+    alert: true
+
+  B_EDIT:
+    max-per-second: 4
+    window-seconds: 1
+    action: DROP
+    category: BOOK
+    alert: true
+
+  UPDATE_SIGN:
+    max-per-second: 10
+    window-seconds: 1
+    action: DROP
+    category: SIGN
+    alert: true
+
+  CHAT:
+    max-per-second: 10
+    window-seconds: 1
+    action: DROP
+    category: CHAT
+    alert: false
+
+  CHAT_COMMAND:
+    max-per-second: 20
+    window-seconds: 1
+    action: DROP
+    category: CHAT
+    alert: false
+
+  TAB_COMPLETE:
+    max-per-second: 30
+    window-seconds: 1
+    action: DROP
+    category: CHAT
+    alert: false
+
+  SETTINGS:
+    max-per-second: 10
+    window-seconds: 1
+    action: DROP
+    category: OTHER
+    alert: false
+
+  KEEP_ALIVE:
+    max-per-second: 10
+    window-seconds: 1
+    action: DROP
+    category: OTHER
+    alert: false

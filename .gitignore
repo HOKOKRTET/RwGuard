@@ -1,0 +1,8 @@
+target/
+*.iml
+.idea/
+dumps/
+*.log
+RwGuard_Architecture.png
+RwGuard_Pipeline_Clean.png
+RwGuard_Banner.jpg
